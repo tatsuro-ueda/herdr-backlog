@@ -1,0 +1,41 @@
+id = "backlog"
+name = "Backlog"
+version = "0.1.0"
+min_herdr_version = "0.9.3"
+description = "Sort the agents sidebar by the mark at the start of each tab name: 🔴 → 🟡 → 🟢 → 🚪 → unmarked. Rename a tab and it moves."
+platforms = ["linux", "macos"]
+
+# Reapply the view after the herdr server restarts (views live in server memory).
+[[startup]]
+command = ["python3", "backlog.py", "apply"]
+
+# Re-sort whenever a tab name changes or an agent appears.
+[[events]]
+on = "tab.renamed"
+command = ["python3", "backlog.py", "apply"]
+
+[[events]]
+on = "tab.created"
+command = ["python3", "backlog.py", "apply"]
+
+[[events]]
+on = "pane.agent_detected"
+command = ["python3", "backlog.py", "apply"]
+
+[[actions]]
+id = "sort"
+title = "Backlog: sort now"
+command = ["python3", "backlog.py", "apply"]
+
+[[actions]]
+id = "off"
+title = "Backlog: stop sorting (back to herdr's default order)"
+command = ["python3", "backlog.py", "off"]
+
+[[panes]]
+id = "status"
+title = "Backlog order"
+placement = "popup"
+width = "70%"
+height = "60%"
+command = ["sh", "-c", "python3 backlog.py status; printf '\\nPress Enter to close.'; read _"]
