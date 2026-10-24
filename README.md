@@ -8,10 +8,13 @@ Sort the [herdr](https://herdr.dev) agents sidebar by the mark at the start of e
 🟡 review PR
 🟢 docs
 🚪 old session
-   scratch         ← unmarked tabs go last
+   scratch         ← unmarked tabs come after the marks
+🔧 transfer        ← tools: hidden until they need you
 ```
 
 Rename a tab, and it moves. Put `🔴` in front of the tab name and it goes to the top within a fraction of a second. Nothing else to configure, nothing to click. Your sidebar becomes a backlog: scan from the top, work down.
+
+Some agents are tools you keep open all day: a transfer helper, a research assistant, a break timer. Put `🔧` in front of their tab names and they leave the list while they are idle or working. They come back at the bottom only when they need you, and leave again once you have looked.
 
 ## Install
 
@@ -27,8 +30,8 @@ If you connect to other machines from the herdr sidebar, install the plugin on e
 
 Two herdr features, nothing else.
 
-1. Each agent pane gets a display token `backlog = "<group>-<index>"` through `herdr pane report-metadata`. The group is the position of the mark in the list (`🔴` is `00`), the index keeps the current order inside a group.
-2. An agent view sorted by that token is set through the socket API (`agent.view.set`), which the CLI does not expose yet.
+1. Each agent pane gets a display token `backlog = "<group>-<index>"` through `herdr pane report-metadata`. The group is the position of the mark in the list (`🔴` is `00`), the index keeps the current order inside a group. Tool panes (`🔧`) also get `backlog_tool = "1"`.
+2. An agent view sorted by that token is set through the socket API (`agent.view.set`), which the CLI does not expose yet. The same view filters out tool panes unless their status is `blocked` (waiting for input) or `done` (finished and not yet seen).
 
 The plugin runs on three triggers and exits. There is no daemon.
 
@@ -49,6 +52,14 @@ printf '🔥\n🔴\n🟡\n🟢\n' > "$(herdr plugin config-dir backlog)/marks.tx
 ```
 
 A mark can be any string, not only an emoji: `[A]`, `!!`, `today:` all work. Lines starting with `#` are ignored.
+
+Tool marks live in `tools.txt` in the same directory, in the same format. The default is `🔧`:
+
+```sh
+printf '🔧\n🛠\n' > "$(herdr plugin config-dir backlog)/tools.txt"
+```
+
+A hidden tool is still one click away: its tab stays in the tab bar, and on another machine it is under that machine in the machines list. Remove the `🔧` and it is back in the list for good.
 
 ## Actions and panes
 

@@ -1,8 +1,8 @@
 id = "backlog"
 name = "Backlog"
-version = "0.1.0"
+version = "0.2.0"
 min_herdr_version = "0.9.3"
-description = "Sort the agents sidebar by the mark at the start of each tab name: 🔴 → 🟡 → 🟢 → 🚪 → unmarked. Rename a tab and it moves."
+description = "Sort the agents sidebar by the mark at the start of each tab name: 🔴 → 🟡 → 🟢 → 🚪 → unmarked. Rename a tab and it moves. 🔧 tool tabs stay hidden until they need you."
 platforms = ["linux", "macos"]
 
 # Reapply the view after the herdr server restarts (views live in server memory).
