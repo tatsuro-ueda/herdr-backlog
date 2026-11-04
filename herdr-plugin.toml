@@ -1,8 +1,8 @@
 id = "backlog"
 name = "Backlog"
-version = "0.2.0"
+version = "0.3.0"
 min_herdr_version = "0.9.3"
-description = "Sort the agents sidebar by the mark at the start of each tab name: 🔴 → 🟡 → 🟢 → 🚪 → unmarked. Rename a tab and it moves. 🔧 tool tabs stay hidden until they need you."
+description = "Sort the agents sidebar by the mark at the start of each tab name: 🔴 → 🟡 → 🟢 → 🚪 → unmarked. Rename a tab and it moves. 🔧 tool tabs stay hidden until they need you. Fork a Claude conversation into a new tab so it stays in the list."
 platforms = ["linux", "macos"]
 
 # Reapply the view after the herdr server restarts (views live in server memory).
@@ -31,6 +31,11 @@ command = ["python3", "backlog.py", "apply"]
 id = "off"
 title = "Backlog: stop sorting (back to herdr's default order)"
 command = ["python3", "backlog.py", "off"]
+
+[[actions]]
+id = "fork"
+title = "Backlog: fork this Claude conversation into a new tab"
+command = ["python3", "backlog.py", "fork"]
 
 [[panes]]
 id = "status"

@@ -16,6 +16,22 @@ Rename a tab, and it moves. Put `🔴` in front of the tab name and it goes to t
 
 Some agents are tools you keep open all day: a transfer helper, a research assistant, a break timer. Put `🔧` in front of their tab names and they leave the list while they are idle or working. They come back at the bottom only when they need you, and leave again once you have looked.
 
+The point is one glance. Everything you have running, its status and its priority, is in the agents list, and nothing you need to look at is anywhere else.
+
+## Fork into a tab
+
+A fork made inside Claude Code runs as a background agent with no pane, so it never shows up in the agents list. Press `prefix+f` (after binding it, below) on a Claude pane instead: the conversation is forked (`claude --resume <id> --fork-session`) into a new tab next to the original. The fork is an agent like any other, with its own status and its own mark, and the original keeps going in its tab.
+
+```toml
+[[keys.command]]
+key = "prefix+f"
+type = "plugin_action"
+command = "backlog.fork"
+description = "backlog: fork this Claude conversation into a new tab"
+```
+
+The new tab runs a normal `claude` in your shell, so anything your shell puts in front of `claude` (aliases, guards) still applies.
+
 ## Install
 
 ```sh
@@ -65,6 +81,7 @@ A hidden tool is still one click away: its tab stays in the tab bar, and on anot
 
 - **Backlog: sort now** — re-sort by hand (`herdr plugin action invoke backlog.sort`).
 - **Backlog: stop sorting** — clear the view and every token; the sidebar goes back to herdr's default order (`herdr plugin action invoke backlog.off`). Run **sort now** to turn it back on.
+- **Backlog: fork this Claude conversation into a new tab** — see [Fork into a tab](#fork-into-a-tab).
 - **Backlog order** — a popup listing the agents in backlog order with their tokens (`herdr plugin pane open --plugin backlog --entrypoint status`).
 
 Bind a key if you like:

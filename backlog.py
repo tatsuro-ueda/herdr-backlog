@@ -15,6 +15,7 @@ Commands:
   apply    write tokens that changed, make sure the view is set   (startup, events, action)
   off      clear the view and every token                          (action)
   status   print the current order                                 (popup pane)
+  fork     fork the focused Claude Code conversation into a new tab (action)
 
 Python 3.9+ standard library only.
 """
@@ -215,6 +216,58 @@ def status() -> int:
     return 0
 
 
+# --- fork ------------------------------------------------------------------------
+
+
+def claude_session(pane: dict) -> str | None:
+    """The Claude Code session id running in a pane.
+
+    The pane may be showing another session through Claude's agent view, so first look for
+    the session whose name is the pane title (Claude Code's own `~/.claude/sessions/*.json`).
+    Then the claude process in the pane. Last, what herdr reports (`agent_session`, herdr 0.9.5+):
+    it can be stale, keeping the first session of the pane after Claude moved on to a new one.
+    """
+    sessions = {}
+    for path in (Path.home() / ".claude" / "sessions").glob("*.json"):
+        try:
+            sessions[path.stem] = json.loads(path.read_text())
+        except (OSError, json.JSONDecodeError):
+            continue
+    title = str(pane.get("terminal_title_stripped") or "").strip()
+    named = [d.get("sessionId") for d in sessions.values() if title and d.get("name") == title]
+    if len(named) == 1:
+        return named[0]
+    info = cli_json("pane", "process-info", "--pane", pane["pane_id"]).get("process_info", {})
+    for proc in info.get("foreground_processes", []):
+        if proc.get("name") == "claude" and str(proc.get("pid")) in sessions:
+            return sessions[str(proc.get("pid"))].get("sessionId")
+    return (pane.get("agent_session") or {}).get("value")
+
+
+def fork() -> int:
+    """Fork the focused Claude Code conversation into a new tab, so it stays in the agents list.
+
+    A fork made inside Claude (a background agent) has no pane, so it never shows up in the
+    sidebar. This one gets its own tab: you see it, its status and its mark like any other agent.
+    The new tab runs a normal `claude`, so whatever guards your shell puts in front of claude still apply.
+    """
+    pane_id = os.environ.get("HERDR_PANE_ID") or die("no focused pane")
+    pane = cli_json("pane", "get", pane_id).get("pane", {})
+    if pane.get("agent") != "claude":
+        die(f"the focused pane is not Claude Code (agent: {pane.get('agent')})")
+    session = claude_session(pane) or die("cannot find the Claude Code session of the focused pane")
+    created = cli_json("tab", "create", "--workspace", pane["workspace_id"], "--cwd", pane["cwd"], "--focus")
+    new_tab = (created.get("tab") or {}).get("tab_id")
+    new_pane = next((p["pane_id"] for p in cli_json("pane", "list").get("panes", []) if p.get("tab_id") == new_tab), None)
+    if not new_pane:
+        die("the new tab has no pane")
+    proc = subprocess.run([HERDR, "pane", "run", new_pane, f"claude --resume {session} --fork-session"],
+                          capture_output=True, text=True)
+    if proc.returncode != 0:
+        die(f"cannot start claude in the new tab: {(proc.stderr or proc.stdout).strip()[:200]}")
+    return 0
+
+
 def main() -> int:
     cmd = sys.argv[1] if len(sys.argv) > 1 else "apply"
     if cmd == "apply":
@@ -223,7 +276,9 @@ def main() -> int:
         return off()
     if cmd == "status":
         return status()
-    die(f"unknown command '{cmd}' (apply / off / status)")
+    if cmd == "fork":
+        return fork()
+    die(f"unknown command '{cmd}' (apply / off / status / fork)")
     return 1
 
 
