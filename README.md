@@ -3,16 +3,20 @@
 Sort the [herdr](https://herdr.dev) agents sidebar by the mark at the start of each tab name.
 
 ```
-🔴 fix prod        ← top: do this first
+🐞 fix typo        ← small jobs (🐞 🐝 🪲) sit just above the big ones of their colour
+🔴 fix prod        ← do this first
 🔴 morning
 🟡 review PR
 🟢 docs
 🚪 old session
    scratch         ← unmarked tabs come after the marks
+⏳ waiting on CI   ← later: below everything you can act on now
 🔧 transfer        ← tools: hidden until they need you
 ```
 
 Rename a tab, and it moves. Put `🔴` in front of the tab name and it goes to the top within a fraction of a second. Nothing else to configure, nothing to click. Your sidebar becomes a backlog: scan from the top, work down.
+
+Some tabs are waiting on something else: a long build, a reply, tomorrow. Put `⏳` in front and they sink below the unmarked tabs. They stay in the list, out of the way.
 
 Some agents are tools you keep open all day: a transfer helper, a research assistant, a break timer. Put `🔧` in front of their tab names and they leave the list while they are idle or working. They come back at the bottom only when they need you, and leave again once you have looked.
 
@@ -46,7 +50,7 @@ If you connect to other machines from the herdr sidebar, install the plugin on e
 
 Two herdr features, nothing else.
 
-1. Each agent pane gets a display token `backlog = "<group>-<index>"` through `herdr pane report-metadata`. The group is the position of the mark in the list (`🔴` is `00`), the index keeps the current order inside a group. Tool panes (`🔧`) also get `backlog_tool = "1"`.
+1. Each agent pane gets a display token `backlog = "<group>-<index>"` through `herdr pane report-metadata`. The group is the position of the mark in the list (`🐞` is `00`, then unmarked, then `⏳`, then tools), the index keeps the current order inside a group. Tool panes (`🔧`) also get `backlog_tool = "1"`.
 2. An agent view sorted by that token is set through the socket API (`agent.view.set`), which the CLI does not expose yet. The same view filters out tool panes unless their status is `blocked` (waiting for input) or `done` (finished and not yet seen).
 
 The plugin runs on three triggers and exits. There is no daemon.
@@ -61,13 +65,19 @@ It only writes tokens that changed, so a run with nothing to do touches nothing.
 
 ## Marks
 
-The default order is `🔴 → 🟡 → 🟢 → 🚪 → unmarked`. To change it, create `marks.txt` in the plugin's config directory, one mark per line, top first:
+The default order is `🐞 → 🔴 → 🐝 → 🟡 → 🪲 → 🟢 → 🚪 → unmarked → ⏳`. The bugs are small jobs: `🐞` is a small red, `🐝` a small yellow, `🪲` a small green, so inside one colour the quick ones come first. To change the marks above unmarked, create `marks.txt` in the plugin's config directory, one mark per line, top first:
 
 ```sh
 printf '🔥\n🔴\n🟡\n🟢\n' > "$(herdr plugin config-dir backlog)/marks.txt"
 ```
 
 A mark can be any string, not only an emoji: `[A]`, `!!`, `today:` all work. Lines starting with `#` are ignored.
+
+Marks that go below unmarked live in `later.txt` in the same directory, in the same format. The default is `⏳`:
+
+```sh
+printf '⏳\n💤\n' > "$(herdr plugin config-dir backlog)/later.txt"
+```
 
 Tool marks live in `tools.txt` in the same directory, in the same format. The default is `🔧`:
 

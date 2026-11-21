@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Backlog: sort the herdr agents sidebar by the mark at the start of each tab name.
 
-Order: 🔴 → 🟡 → 🟢 → 🚪 → unmarked → 🔧. Inside one group the current order is kept.
+Order: 🐞 → 🔴 → 🐝 → 🟡 → 🪲 → 🟢 → 🚪 → unmarked → ⏳ → 🔧. Inside one group the current order is kept.
+The bugs (🐞 🐝 🪲) are small jobs: same colour, just above their big one.
+Later tabs (⏳) are things you are waiting on: always listed, below the unmarked ones.
 Tool tabs (🔧) stay out of the list while they are idle or working, and show up
 at the bottom only when they need you (blocked, or done and not yet seen).
 
@@ -33,7 +35,8 @@ from pathlib import Path
 SOURCE = "backlog"  # metadata source id and view source id
 TOKEN = "backlog"  # token name on each pane
 TOOL_TOKEN = "backlog_tool"  # set to "1" on tool panes, cleared on the others
-DEFAULT_MARKS = ["🔴", "🟡", "🟢", "🚪"]
+DEFAULT_MARKS = ["🐞", "🔴", "🐝", "🟡", "🪲", "🟢", "🚪"]
+DEFAULT_LATER = ["⏳"]
 DEFAULT_TOOLS = ["🔧"]
 
 HERDR = os.environ.get("HERDR_BIN_PATH", "herdr")
@@ -116,9 +119,13 @@ def load_list(name: str, default: list[str]) -> list[str]:
     return items or default
 
 
-def load_marks() -> tuple[list[str], list[str]]:
-    """(marks in order, tool marks). Groups: each mark, then unmarked, then tools."""
-    return load_list("marks.txt", DEFAULT_MARKS), load_list("tools.txt", DEFAULT_TOOLS)
+def load_marks() -> tuple[list[str], list[str], list[str]]:
+    """(marks in order, later marks, tool marks). Groups: each mark, unmarked, each later mark, tools."""
+    return (
+        load_list("marks.txt", DEFAULT_MARKS),
+        load_list("later.txt", DEFAULT_LATER),
+        load_list("tools.txt", DEFAULT_TOOLS),
+    )
 
 
 def agents_with_labels() -> list[dict]:
@@ -137,13 +144,16 @@ def is_tool(a: dict, tools: list[str]) -> bool:
     return name_of(a).lstrip().startswith(tuple(tools))
 
 
-def group_of(a: dict, marks: list[str], tools: list[str]) -> int:
+def group_of(a: dict, marks: list[str], later: list[str], tools: list[str]) -> int:
     if is_tool(a, tools):
-        return len(marks) + 1
+        return len(marks) + len(later) + 1
     name = name_of(a).lstrip()
     for i, mark in enumerate(marks):
         if name.startswith(mark):
             return i
+    for i, mark in enumerate(later):
+        if name.startswith(mark):
+            return len(marks) + 1 + i
     return len(marks)
 
 
@@ -151,10 +161,10 @@ def token_of(a: dict, name: str = TOKEN) -> str | None:
     return (a.get("tokens") or {}).get(name)
 
 
-def ordered(agents: list[dict], marks: list[str], tools: list[str]) -> list[dict]:
+def ordered(agents: list[dict], marks: list[str], later: list[str], tools: list[str]) -> list[dict]:
     """Group by mark; inside a group keep the current order (existing token, then list order)."""
     by_current = sorted(agents, key=lambda a: (token_of(a) is None, token_of(a) or ""))
-    return sorted(by_current, key=lambda a: group_of(a, marks, tools))
+    return sorted(by_current, key=lambda a: group_of(a, marks, later, tools))
 
 
 # A tool pane is listed only while it needs you. `done` means idle and not yet seen.
@@ -169,12 +179,12 @@ VIEW = {"source": SOURCE, "label": "backlog", "filter": SHOW, "sort": [{"field":
 
 
 def apply() -> int:
-    marks, tools = load_marks()
+    marks, later, tools = load_marks()
     agents = agents_with_labels()
     changed = 0
-    for i, a in enumerate(ordered(agents, marks, tools), start=1):
+    for i, a in enumerate(ordered(agents, marks, later, tools), start=1):
         want = {
-            TOKEN: f"{group_of(a, marks, tools):02d}-{min(i, 99):02d}",
+            TOKEN: f"{group_of(a, marks, later, tools):02d}-{min(i, 99):02d}",
             TOOL_TOKEN: "1" if is_tool(a, tools) else None,
         }
         diff = {k: v for k, v in want.items() if token_of(a, k) != v}
@@ -202,11 +212,11 @@ def width(text: str) -> int:
 
 
 def status() -> int:
-    marks, tools = load_marks()
-    print("Backlog order: " + " → ".join(marks) + " → unmarked → " + " ".join(tools) + " (hidden until they need you)")
-    print(f"marks file: {CONFIG_DIR / 'marks.txt'}   tools file: {CONFIG_DIR / 'tools.txt'}\n")
+    marks, later, tools = load_marks()
+    print("Backlog order: " + " → ".join(marks + ["unmarked"] + later) + " → " + " ".join(tools) + " (hidden until they need you)")
+    print(f"marks file: {CONFIG_DIR / 'marks.txt'}   later file: {CONFIG_DIR / 'later.txt'}   tools file: {CONFIG_DIR / 'tools.txt'}\n")
     agents = agents_with_labels()
-    rows = ordered(agents, marks, tools)
+    rows = ordered(agents, marks, later, tools)
     w = max((width(name_of(a)) for a in rows), default=4)
     for i, a in enumerate(rows, start=1):
         name = name_of(a)
