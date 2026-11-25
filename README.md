@@ -87,6 +87,22 @@ printf '🔧\n🛠\n' > "$(herdr plugin config-dir backlog)/tools.txt"
 
 A hidden tool is still one click away: its tab stays in the tab bar, and on another machine it is under that machine in the machines list. Remove the `🔧` and it is back in the list for good.
 
+### Let the agent set its own mark
+
+The plugin never renames anything. It reads the mark, and the name comes from you or from the agent. If a tab has no name of its own, the pane's terminal title is used, and Claude Code puts the session name there. So a hook that renames the session moves the tab.
+
+For example, a Claude Code `UserPromptSubmit` hook can return `sessionTitle`. This one turns the first character into `🚪` whenever you type `/wrap-up`, so a session you are wrapping up sinks to the old-session group by itself:
+
+```sh
+#!/bin/sh
+# UserPromptSubmit hook: "/wrap-up" -> session name starts with 🚪
+jq -c 'select(.prompt | startswith("/wrap-up"))
+  | (.session_title // "") as $t
+  | select($t | startswith("🚪") | not)
+  | {hookSpecificOutput: {hookEventName: "UserPromptSubmit",
+      sessionTitle: ("🚪" + ($t | .[1:] | ltrimstr("\ufe0f")))}}'
+```
+
 ## Actions and panes
 
 - **Backlog: sort now** — re-sort by hand (`herdr plugin action invoke backlog.sort`).
