@@ -51,12 +51,12 @@ description = "backlog: set or clear the focus line"
 The line becomes the first row of the agents list, above every mark:
 
 ```
-🎯 finish the release notes ~15:00   ← always first
+🎯 ~15:00 finish the release notes   ← always first (the full line is on the row below)
 🔴 fix prod
 🟡 review PR
 ```
 
-When the time is up it turns into `🎯⏰ …`. Press the key again to change it, keep it with a new time, or type `-` to clear it. Closing its tab clears it too.
+When the time is up it turns into `🎯⏰ …`. The tab name starts with the time, and the whole line goes in the agent name on the second line of the row, so a narrow sidebar cuts as little as possible. Press the key again to change it, keep it with a new time, or type `-` to clear it. Closing its tab clears it too.
 
 The line lives in its own tab, where a small watcher keeps it listed and updates the name. The text is stored in `focus.json` in the plugin's config directory (past lines go to `focus-history.jsonl`), and the tab is rebuilt when the herdr server starts. Only tabs the plugin created are renamed or closed; a tab you name `🎯 …` yourself is just sorted first.
 

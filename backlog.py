@@ -345,12 +345,19 @@ def focus_overdue(data: dict, now: float | None = None) -> bool:
 
 
 def focus_label(data: dict, now: float | None = None) -> str:
+    """Tab name: the time comes first, so it survives the sidebar cutting the end off.
+    The full line goes to the agent row underneath (focus_display)."""
     text = clip(" ".join(str(data["text"]).split()), FOCUS_COLS)
     mark = FOCUS_MARK + ("⏰" if focus_overdue(data, now) else "")
     until = data.get("until")
     if until is not None:
-        return f"{mark} {text} ~{time.strftime('%H:%M', time.localtime(until))}"
+        return f"{mark} ~{time.strftime('%H:%M', time.localtime(until))} {text}"
     return f"{mark} {text}"
+
+
+def focus_display(data: dict) -> str:
+    """Second line of the row (where the agent name goes): the whole line, herdr cuts it to fit."""
+    return " ".join(str(data["text"]).split())[:200]
 
 
 def parse_minutes(raw: str) -> int | None:
@@ -543,6 +550,10 @@ def focus_watch(pane_id: str) -> int:
         subprocess.run([HERDR, "pane", "report-agent", pane_id, "--source", FOCUS_SOURCE,
                         "--agent", FOCUS_AGENT, "--state", "idle"], capture_output=True, text=True)
 
+    def show(text: str) -> None:
+        subprocess.run([HERDR, "pane", "report-metadata", pane_id, "--source", FOCUS_SOURCE,
+                        "--display-agent", text], capture_output=True, text=True)
+
     report()
     while True:
         try:
@@ -558,6 +569,8 @@ def focus_watch(pane_id: str) -> int:
                 return 0
             if pane.get("agent") != FOCUS_AGENT:
                 report()
+            if pane.get("display_agent") != focus_display(data):
+                show(focus_display(data))
             label = focus_label(data)
             tab = cli_json("tab", "get", tab_id).get("tab", {}) if tab_id else {}
             if tab and tab.get("label") != label:
