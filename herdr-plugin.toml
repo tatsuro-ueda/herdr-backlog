@@ -1,13 +1,17 @@
 id = "backlog"
 name = "Backlog"
-version = "0.4.0"
+version = "0.5.0"
 min_herdr_version = "0.9.3"
-description = "Sort the agents sidebar by the mark at the start of each tab name: 🐞 → 🔴 → 🐝 → 🟡 → 🪲 → 🟢 → 🚪 → unmarked → ⏳. Rename a tab and it moves. 🔧 tool tabs stay hidden until they need you. Fork a Claude conversation into a new tab so it stays in the list."
+description = "Sort the agents sidebar by the mark at the start of each tab name: 🐞 → 🔴 → 🐝 → 🟡 → 🪲 → 🟢 → 🚪 → unmarked → ⏳. Rename a tab and it moves. 🔧 tool tabs stay hidden until they need you. Fork a Claude conversation into a new tab so it stays in the list. Pin one focus line (🎯) as the first row."
 platforms = ["linux", "macos"]
 
 # Reapply the view after the herdr server restarts (views live in server memory).
 [[startup]]
 command = ["python3", "backlog.py", "apply"]
+
+# Rebuild the 🎯 focus tab from focus.json (the tab and its watcher do not survive a restart).
+[[startup]]
+command = ["python3", "backlog.py", "focus-restore"]
 
 # Re-sort whenever a tab name changes or an agent appears.
 [[events]]
@@ -21,6 +25,11 @@ command = ["python3", "backlog.py", "apply"]
 [[events]]
 on = "pane.agent_detected"
 command = ["python3", "backlog.py", "apply"]
+
+# Closing the 🎯 focus tab by hand clears the focus, so it does not come back at restart.
+[[events]]
+on = "tab.closed"
+command = ["python3", "backlog.py", "focus-closed"]
 
 [[actions]]
 id = "sort"
@@ -44,3 +53,17 @@ placement = "popup"
 width = "70%"
 height = "60%"
 command = ["sh", "-c", "python3 backlog.py status; printf '\\nPress Enter to close.'; read _"]
+
+# One line to keep in mind, pinned as the first row of the agents list.
+[[actions]]
+id = "focus"
+title = "Backlog: set or clear the 🎯 focus line"
+command = ["sh", "-c", "exec \"${HERDR_BIN_PATH:-herdr}\" plugin pane open --plugin backlog --entrypoint focus --focus"]
+
+[[panes]]
+id = "focus"
+title = "Focus"
+placement = "popup"
+width = "60%"
+height = "35%"
+command = ["python3", "backlog.py", "focus-edit"]

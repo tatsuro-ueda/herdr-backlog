@@ -36,6 +36,30 @@ description = "backlog: fork this Claude conversation into a new tab"
 
 The new tab runs a normal `claude` in your shell, so anything your shell puts in front of `claude` (aliases, guards) still applies.
 
+## Focus line
+
+Keep one line in mind while you work: what you are doing right now, and until when. Bind the `backlog.focus` action to a key, press it, type the line and the minutes (default 60):
+
+```toml
+[[keys.command]]
+key = "prefix+t"
+type = "plugin_action"
+command = "backlog.focus"
+description = "backlog: set or clear the focus line"
+```
+
+The line becomes the first row of the agents list, above every mark:
+
+```
+🎯 finish the release notes ~15:00   ← always first
+🔴 fix prod
+🟡 review PR
+```
+
+When the time is up it turns into `🎯⏰ …`. Press the key again to change it, keep it with a new time, or type `-` to clear it. Closing its tab clears it too.
+
+The line lives in its own tab, where a small watcher keeps it listed and updates the name. The text is stored in `focus.json` in the plugin's config directory (past lines go to `focus-history.jsonl`), and the tab is rebuilt when the herdr server starts. Only tabs the plugin created are renamed or closed; a tab you name `🎯 …` yourself is just sorted first.
+
 ## Install
 
 ```sh
@@ -58,7 +82,8 @@ The plugin runs on three triggers and exits. There is no daemon.
 | Trigger | What happens |
 |---|---|
 | `tab.renamed`, `tab.created`, `pane.agent_detected` | re-sort |
-| herdr server startup | re-sort and set the view again (views live in server memory) |
+| `tab.closed` | clear the focus line if you closed its tab |
+| herdr server startup | re-sort and set the view again (views live in server memory), rebuild the focus tab |
 | action **Backlog: sort now** | re-sort by hand |
 
 It only writes tokens that changed, so a run with nothing to do touches nothing.
